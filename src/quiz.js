@@ -25,7 +25,8 @@ function shuffle(list) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-const words = s => new Set(String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 2));
+const words = s => new Set(String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 2 || /^\d+$/.test(w)));
+const numbersOf = s => (String(s).match(/\d+/g) || []).join(',');
 function similar(a, b) {
   const A = words(a), B = words(b);
   if (!A.size || !B.size) return 0;
@@ -46,12 +47,12 @@ function pickKind() {
 function patternQuiz() {
   const makers = [
     () => { const a = rnd(2, 20), d = rnd(3, 13); const t = [0, 1, 2, 3, 4, 5].map(i => a + d * i); return { t, why: `Each number goes up by ${d}.` }; },
-    () => { let x = rnd(1, 5); const k = pick([1, 2, 3]); const t = [x]; for (let i = 0; i < 5; i++) t.push(x = x * 2 + k); return { t, why: `Each number is doubled, then ${k} is added.` }; },
+    () => { let x = rnd(1, 9); const k = pick([1, 2, 3, 4, 5]); const t = [x]; for (let i = 0; i < 5; i++) t.push(x = x * 2 + k); return { t, why: `Each number is doubled, then ${k} is added.` }; },
     () => { const a = rnd(1, 10), d = rnd(1, 4), s = rnd(1, 3); const t = [a]; for (let i = 0; i < 5; i++) t.push(t[i] + d + s * i); return { t, why: `The gap grows by ${s} each time (+${d}, +${d + s}, +${d + 2 * s}...).` }; },
-    () => { const o = rnd(1, 6), k = pick([0, 0, 1, -1, 2]); const t = [0, 1, 2, 3, 4, 5].map(i => (i + o) ** 2 + k); return { t, why: k === 0 ? `They are square numbers: ${o}×${o}, ${o + 1}×${o + 1}, ${o + 2}×${o + 2}...` : `Square numbers ${k > 0 ? 'plus' : 'minus'} ${Math.abs(k)}: ${o}×${o}${k > 0 ? '+' : '−'}${Math.abs(k)}, ${o + 1}×${o + 1}${k > 0 ? '+' : '−'}${Math.abs(k)}...` }; },
+    () => { const o = rnd(1, 11), k = pick([0, 0, 1, -1, 2, 3, -2, 5]); const t = [0, 1, 2, 3, 4, 5].map(i => (i + o) ** 2 + k); return { t, why: k === 0 ? `They are square numbers: ${o}×${o}, ${o + 1}×${o + 1}, ${o + 2}×${o + 2}...` : `Square numbers ${k > 0 ? 'plus' : 'minus'} ${Math.abs(k)}: ${o}×${o}${k > 0 ? '+' : '−'}${Math.abs(k)}, ${o + 1}×${o + 1}${k > 0 ? '+' : '−'}${Math.abs(k)}...` }; },
     () => { const m = pick([2, 3]), p = rnd(1, 5); let x = rnd(1, 6); const t = [x]; for (let i = 0; i < 5; i++) t.push(x = i % 2 === 0 ? x * m : x + p); return { t, why: `The rule takes turns: ×${m}, then +${p}.` }; },
-    () => { const t = [rnd(1, 4), rnd(2, 6)]; while (t.length < 7) t.push(t[t.length - 1] + t[t.length - 2]); return { t: t.slice(0, 6), why: 'Each number is the sum of the two before it.' }; },
-    () => { const o = rnd(1, 5); const t = [0, 1, 2, 3, 4, 5].map(i => (i + o) * (i + o + 1)); return { t, why: `${o}×${o + 1}, ${o + 1}×${o + 2}, ${o + 2}×${o + 3}... each is a number times the next one.` }; },
+    () => { const t = [rnd(1, 9), rnd(2, 12)]; while (t.length < 7) t.push(t[t.length - 1] + t[t.length - 2]); return { t: t.slice(0, 6), why: 'Each number is the sum of the two before it.' }; },
+    () => { const o = rnd(1, 9); const t = [0, 1, 2, 3, 4, 5].map(i => (i + o) * (i + o + 1)); return { t, why: `${o}×${o + 1}, ${o + 1}×${o + 2}, ${o + 2}×${o + 3}... each is a number times the next one.` }; },
     () => { const a = rnd(60, 120), d = rnd(4, 11); const t = [0, 1, 2, 3, 4, 5].map(i => a - d * i); return { t, why: `Each number goes down by ${d}.` }; },
   ];
   const { t, why } = pick(makers)();
@@ -149,7 +150,10 @@ async function verify(q) {
 function isRepeat(q) {
   const past = readHistory();
   for (const h of past.slice(-300)) {
-    if (similar(h.question, q.question) >= 0.55) return `too close to an earlier question: "${h.question}"`;
+    if (q.kind === 'pattern') {
+      // number puzzles: only the exact same numbers count as a repeat
+      if (h.kind === 'pattern' && numbersOf(h.question) === numbersOf(q.question)) return `same number puzzle as before: "${h.question}"`;
+    } else if (similar(h.question, q.question) >= 0.55) return `too close to an earlier question: "${h.question}"`;
   }
   if (q.kind !== 'pattern' && past.slice(-40).some(h => h.kind === q.kind && String(h.answer).toLowerCase() === q.correct.toLowerCase())) {
     return `same answer "${q.correct}" was used recently`;
@@ -174,14 +178,26 @@ function finish(q, n) {
   };
 }
 
+// Number puzzle that was not used before (tries many times; never fails the video).
+function freshPattern() {
+  let q;
+  for (let i = 0; i < 60; i++) {
+    q = patternQuiz();
+    if (!isRepeat(q)) break;
+  }
+  log(`Question ready (pattern): ${q.question.replace(/\n/g, ' ')} -> ${q.correct}`);
+  return q;
+}
+
 async function writeQuiz(topic, kind) {
   const n = readHistory().length;
   kind = kind || (topic ? pick(['riddle', 'logic', 'math']) : pickKind());
   let lastErr;
+  if (kind === 'pattern') return finish(freshPattern(), n);
   for (let attempt = 1; attempt <= 6; attempt++) {
     try {
       let q;
-      if (kind === 'pattern') q = patternQuiz();
+      if (kind === 'pattern') return finish(freshPattern(), n);
       else {
         q = cleanQuiz(await askJSON(geminiPrompt(kind, topic), { temperature: 1.0 }), kind);
       }
@@ -197,11 +213,8 @@ async function writeQuiz(topic, kind) {
       if (attempt === 4 && kind !== 'pattern') { kind = 'pattern'; log('Switching to a number puzzle (always correct).'); }
     }
   }
-  if (kind !== 'pattern') {
-    log('Gemini could not give a checked question, making a number puzzle instead.');
-    return finish(patternQuiz(), n);
-  }
-  throw lastErr;
+  log(`Gemini could not give a checked question (${String(lastErr && lastErr.message).slice(0, 120)}), making a number puzzle instead.`);
+  return finish(freshPattern(), n);
 }
 
 module.exports = { writeQuiz, readHistory, addHistory, patternQuiz, finish };
