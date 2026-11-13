@@ -24,12 +24,28 @@ async function call(model, body) {
   return JSON.parse(text);
 }
 
+// Main model first; if Google says it is busy (503/429) or missing (404), the backups answer instead.
+function textModels() {
+  const main = env('GEMINI_TEXT_MODEL', 'gemini-3.8-flash');
+  const backups = env('GEMINI_TEXT_FALLBACKS', 'gemini-3.5-flash,gemini-3.5-flash-lite').split(/[,\s]+/).filter(Boolean);
+  return [...new Set([main, ...backups])];
+}
+
 async function askJSON(prompt, { temperature = 0.9 } = {}) {
-  const model = env('GEMINI_TEXT_MODEL', 'gemini-3.8-flash');
-  const data = await call(model, {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature, responseMimeType: 'application/json' },
-  });
+  let data, lastErr;
+  for (const model of textModels()) {
+    try {
+      data = await call(model, {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature, responseMimeType: 'application/json' },
+      });
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (!/HTTP (503|429|500|404)/.test(e.message)) throw e;
+    }
+  }
+  if (!data) throw lastErr;
   const parts = data?.candidates?.[0]?.content?.parts || [];
   const text = parts.filter(p => p.text && !p.thought).map(p => p.text).join('');
   if (!text) throw new Error('Gemini returned no text: ' + JSON.stringify(data).slice(0, 300));
