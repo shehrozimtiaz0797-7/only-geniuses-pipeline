@@ -20,14 +20,15 @@ module.exports = {
     'Can You Solve This {kind} in 10 Seconds? ⏱️',
     'Only Geniuses Can Answer This {kind} 🧠',
     'Most People Fail This {kind} 🤯',
+    'Only Detectives Can Solve This {kind} 🕵️',
     'Are You Smarter Than 99%? {kind} Test 🧠',
   ],
 
   // How often each kind of question is made (bigger = more often).
   // "pattern" questions are made by code, so their answer is always right.
-  mix: { riddle: 30, logic: 25, math: 20, pattern: 25 },
+  mix: { riddle: 25, mystery: 20, logic: 20, math: 15, pattern: 20 },
 
-  kindName: { riddle: 'Riddle', logic: 'Logic Puzzle', math: 'Math Puzzle', pattern: 'Number Puzzle' },
+  kindName: { riddle: 'Riddle', mystery: 'Mystery', logic: 'Logic Puzzle', math: 'Math Puzzle', pattern: 'Number Puzzle' },
 
   // Colours (R, G, B)
   colors: {
