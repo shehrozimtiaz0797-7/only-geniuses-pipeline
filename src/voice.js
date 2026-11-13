@@ -55,9 +55,9 @@ async function makeVoices(quiz, dir) {
 
   const qLine = `${spoken(sentence(quiz.hook))} ${spoken(quiz.voiceQuestion)} You have ${env('COUNTDOWN_SECONDS', '10')} seconds!`;
   const aLine = `The answer is ${quiz.answerLetter}, ${spoken(quiz.correct)}! ${spoken(quiz.explanation)}`;
-  const text = mode === 'answer'
-    ? `Read this like a happy quiz-show host revealing the answer: ${aLine}`
-    : `Read this like an excited, fast quiz-show host. Read the first part, then stay completely silent for two full seconds, then read the second part happily, like revealing the answer.\n\nFirst part: ${qLine}\n\nSecond part: ${aLine}`;
+  // Only the words to be spoken: Gemini TTS sometimes reads instructions out loud.
+  // The pause between question and answer comes from the paragraph break and the dots.
+  const text = mode === 'answer' ? aLine : `${qLine}\n\n... ... ...\n\n${aLine}`;
 
   try {
     const pcm = await withRetry('Voice', () => speak(text, voice), { tries: 2, waitMs: 20000, log });
