@@ -5,3 +5,7 @@
 - Voice: send only the spoken lines to Gemini TTS. The question voice was 19 s because the instructions were read aloud.
 - Mystery (detective) puzzle kind added; titles 'Only Detectives Can Solve This Mystery'.
 - Channel description set; playlist 'Brain Teasers & Riddles' created.
+
+## 2026-11-13 (owner request)
+- Daily uploads cut to 3 (Malaysia time: 7:50pm, 11:50pm, 3:50am). A 'gate' job skips runs outside these slots, so cron-job.org needs no change. Manual run outside slots: tick 'force'.
+- Reason: many uploads a day were splitting views; fewer videos should each get a bigger push.
