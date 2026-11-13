@@ -1,0 +1,101 @@
+name: Only Geniuses daily Shorts
+
+on:
+  # No GitHub 'schedule' here: runs are started on time by cron-job.org
+  # (GitHub's own schedule is often late or skipped).
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Optional theme (e.g. space, animals). Leave empty for a random question"
+        required: false
+        default: ""
+      kind:
+        description: "Optional: riddle, logic, math or pattern. Leave empty for a mix"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: only-geniuses-daily
+  cancel-in-progress: false
+
+jobs:
+  make-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Kuala_Lumpur
+      FFMPEG_PATH: ffmpeg
+      PYTHON: python
+      # ----- Settings (edit here) -----
+      SHORTS_PER_RUN: "1"
+      PRIVACY: public
+      COUNTDOWN_SECONDS: "10"
+      # how many times a second Gemini call must agree with the answer
+      VERIFY_TIMES: "2"
+      # both = read question and answer, answer = only the answer, none = sound effects only
+      VOICE: both
+      GEMINI_TEXT_MODEL: gemini-3.8-flash
+      GEMINI_TTS_MODEL: gemini-3.8-flash-tts
+      # Voices take turns, one per video
+      GEMINI_TTS_VOICE: Puck,Kore
+      # ----- Secrets (Settings -> Secrets and variables -> Actions) -----
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          ffmpeg -version | head -1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install drawing tool
+        run: pip install -q pillow
+
+      - name: Make and upload a Short
+        env:
+          TOPIC: ${{ github.event.inputs.topic }}
+          KIND: ${{ github.event.inputs.kind }}
+        run: |
+          set --
+          if [ -n "$TOPIC" ]; then set -- "$@" --topic "$TOPIC"; fi
+          if [ -n "$KIND" ]; then set -- "$@" --kind "$KIND"; fi
+          node make-video.js "$@"
+
+      - name: Save question history (so questions never repeat)
+        if: always()
+        run: |
+          if [ -f history.json ]; then
+            git config user.name "only-geniuses-bot"
+            git config user.email "only-geniuses-bot@users.noreply.github.com"
+            git add history.json
+            git commit -m "Update question history $(date +'%Y-%m-%d %H:%M')" || echo "Nothing to save"
+            git pull --rebase || true
+            git push || echo "Could not save history"
+          fi
+
+      - name: Keep the video for 2 days (download from this page)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-${{ github.run_number }}
+          path: |
+            output/*/final.mp4
+            output/*/quiz.json
+            logs/pipeline.log
+          retention-days: 2
+          if-no-files-found: ignore

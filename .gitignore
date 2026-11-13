@@ -1,0 +1,5 @@
+.env
+token.json
+output/
+logs/
+node_modules/

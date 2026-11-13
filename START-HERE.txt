@@ -1,0 +1,85 @@
+ONLY GENIUSES - SETUP (sab kuch NAYA account, purana kuch use nahi karna)
+==========================================================================
+
+Is channel ko Cloudflare ki zaroorat NAHI. Tasveerein code khud banata hai.
+Sirf 4 cheezein chahiye: GEMINI_API_KEY, YT_CLIENT_ID, YT_CLIENT_SECRET, YT_REFRESH_TOKEN.
+
+PART 1 - Naya Google account + channel
+  1. Naya Gmail banayein, phone se verify karein.
+  2. Isi account se youtube.com -> Create a channel -> naam: Only Geniuses
+  3. Handle try karein: @OnlyGeniusesQuiz (agar le liya gaya ho to @OnlyGeniuses.Daily ya @OnlyGeniusesIQ)
+  4. studio.youtube.com -> Settings -> Channel -> Feature eligibility -> phone verify.
+
+PART 2 - Google Cloud (upload ki ijazat) - NAYE account se login rehte hue
+  1. console.cloud.google.com -> New Project -> naam: only-geniuses-yt
+  2. APIs & Services -> Library -> "YouTube Data API v3" -> Enable
+  3. Google Auth Platform -> Get started: App name "Only Geniuses Uploader",
+     support email (naya Gmail), Audience: External, contact email -> Finish
+  4. Audience -> Publish app -> Confirm   (zaroori! warna 7 din baad login expire)
+  5. Clients -> Create client -> Desktop app -> Create
+     Client ID aur Client secret copy kar lein.
+
+PART 3 - Gemini key
+  aistudio.google.com/apikey (NAYE account se) -> Create API key -> "Create in new project"
+
+PART 4 - GitHub
+  Naye account par GitHub banayein (ya apne purane GitHub par sirf nayi repo - dono chalenge).
+  New repository -> naam: only-geniuses-pipeline -> Public -> Create.
+
+PART 5 - Laptop par login token (ek baar)
+  1. Zip ko Desktop\only-geniuses-pipeline mein extract karein.
+  2. .env.example ki copy banayein, naam .env rakhein, aur 3 values bharen:
+       GEMINI_API_KEY=...
+       YT_CLIENT_ID=...
+       YT_CLIENT_SECRET=...
+  3. Command Prompt:
+       cd %USERPROFILE%\Desktop\only-geniuses-pipeline
+       node auth.js
+  4. Browser mein NAYA Google account chunein, phir Only Geniuses channel.
+     "Google hasn't verified this app" -> Advanced -> Go to ... (unsafe). Yeh aap ka apna app hai.
+  5. Command Prompt mein "Connected to YouTube channel: Only Geniuses" aana chahiye.
+  6. node print-secrets.js   -> 4 values dikhayega.
+
+PART 6 - GitHub secrets
+  Repo -> Settings -> Secrets and variables -> Actions -> New repository secret
+  Yeh 4 naam bilkul aise:
+    GEMINI_API_KEY   YT_CLIENT_ID   YT_CLIENT_SECRET   YT_REFRESH_TOKEN
+
+PART 7 - Files GitHub par bhejein
+       cd %USERPROFILE%\Desktop\only-geniuses-pipeline
+       git init
+       git add .
+       git commit -m "Only Geniuses pipeline"
+       git branch -M main
+       git remote add origin https://github.com/<APNA-GITHUB-NAAM>/only-geniuses-pipeline.git
+       git push -u origin main
+  (.env aur token.json khud hi upload NAHI honge, .gitignore unhe rokta hai.)
+
+PART 8 - Test
+  Repo -> Actions -> "Only Geniuses daily Shorts" -> Run workflow.
+  Hara tick aaye aur video channel par aa jaye.
+
+PART 9 - Roz ka schedule (cron-job.org)
+  Pehle GitHub token mein nayi repo add karein (Fine-grained token -> Edit -> Repository access).
+  Agar repo NAYE GitHub account par hai to wahan naya fine-grained token banana hoga
+  (Actions: Read and write).
+  cron-job.org par naya job:
+    URL:    https://api.github.com/repos/<APNA-GITHUB-NAAM>/only-geniuses-pipeline/actions/workflows/daily-shorts.yml/dispatches
+    Method: POST
+    Headers: Authorization: Bearer <token>
+             Accept: application/vnd.github+json
+    Body:   {"ref":"main"}
+    Schedule (Custom / crontab, Time zone: Asia/Kuala_Lumpur):
+             50 17,19,21,23,1,3 * * *
+             = run 5:50 PM, 7:50 PM, 9:50 PM, 11:50 PM, 1:50 AM, 3:50 AM
+             = video channel par ~6 PM, 8 PM, 10 PM, 12 AM, 2 AM, 4 AM
+  Har run 1 video banata hai. Ek video ko lagbhag 3-5 minute lagte hain.
+
+Roz ki limits (naye account ki, sirf is channel ke liye):
+  - Awaaz (Gemini TTS): free limit ~10 roz. Har video 1 istemal karti hai, to 6 videos theek.
+    Limit khatam ho jaye to video phir bhi banti hai, sirf music aur sound ke saath.
+  - Sawal (Gemini text): har video 3-5 calls. 6 videos par koi masla nahi.
+  - YouTube upload: 6 roz par koi masla nahi.
+
+Laptop par test video (bina upload ke):
+       node make-video.js --sample --no-upload

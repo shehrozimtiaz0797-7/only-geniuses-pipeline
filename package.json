@@ -1,0 +1,13 @@
+{
+  "name": "only-geniuses-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Only Geniuses: daily brain-teaser quiz Shorts, made and uploaded automatically",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "auth": "node auth.js",
+    "secrets": "node print-secrets.js",
+    "test-video": "node make-video.js --sample --no-upload",
+    "start": "node make-video.js"
+  }
+}
