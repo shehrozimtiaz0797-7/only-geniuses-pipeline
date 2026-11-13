@@ -74,6 +74,7 @@ function patternQuiz() {
 const KIND_RULES = {
   riddle: `A short riddle with a clever "aha" answer. Good: a fresh twist people have not seen 100 times. Avoid the most famous riddles (no "what has keys but can't open locks", no "what gets wetter the more it dries", no "the more you take the more you leave behind").`,
   logic: `A short logic or lateral-thinking puzzle (ordering people by height or age, who is lying, trick questions about months/days/counting, family relations like "my father's only son"). It must be solvable in 5-10 seconds of thinking, with a tempting wrong answer.`,
+  mystery: `A tiny detective mystery in 2-3 short sentences: a crime or strange event, 3-4 suspects or explanations, and ONE clear clue in the text that proves the answer (e.g. a suspect says something only the thief could know, an alibi that cannot be true, footprints, time of day). The options are the suspects or explanations. The clue must be in the question, so careful readers can solve it without outside knowledge.`,
   math: `A quick mental-math puzzle with a trap, solvable in 5-10 seconds without paper (e.g. "A bat and a ball" style, "half of 2 plus 2", speed/time tricks, "how many months have 28 days" style counting). Write any calculation with clear notation: use × and ÷, always use brackets, never implied multiplication like 2(3+1).`,
 };
 
@@ -88,7 +89,7 @@ ${topic ? `Theme for this question: ${topic}\n` : ''}
 Hard rules:
 - Exactly ONE option is correct, with no reasonable argument for any other option. If there is any doubt, write a different question.
 - No trivia or general knowledge facts (no dates, capitals, famous people, science facts). The answer must come from thinking, not from memory.
-- The question is in simple English, at most 24 words, readable as big text on a phone.
+- The question is in simple English, at most 24 words (a mystery may use up to 32 words), readable as big text on a phone.
 - Each option is at most 4 words (or a number).
 - One of the wrong options is the "trap": the answer most people blurt out first.
 - The explanation is at most 18 words and shows WHY the answer is right.
@@ -129,7 +130,7 @@ function cleanQuiz(q, kind) {
   const all = [out.correct, ...out.wrong].map(s => s.toLowerCase());
   if (!out.question || !out.correct || out.wrong.length !== 3) throw new Error('quiz is missing parts');
   if (new Set(all).size !== 4) throw new Error('options are not all different');
-  if (out.question.split(' ').length > 32) throw new Error('question too long');
+  if (out.question.split(' ').length > 40) throw new Error('question too long');
   if ([out.correct, ...out.wrong].some(o => o.length > 28)) throw new Error('an option is too long');
   return out;
 }
@@ -191,7 +192,7 @@ function freshPattern() {
 
 async function writeQuiz(topic, kind) {
   const n = readHistory().length;
-  kind = kind || (topic ? pick(['riddle', 'logic', 'math']) : pickKind());
+  kind = kind || (topic ? pick(['riddle', 'mystery', 'logic', 'math']) : pickKind());
   let lastErr;
   if (kind === 'pattern') return finish(freshPattern(), n);
   for (let attempt = 1; attempt <= 6; attempt++) {
